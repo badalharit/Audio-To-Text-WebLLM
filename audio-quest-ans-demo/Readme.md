@@ -6,9 +6,9 @@ This project demonstrates a simple Proof-of-Concept (PoC) for capturing audio fr
 
 ## Project Structure
 
-Audio-To-Text-WebLLM/
-└── audio-quest-ans-demo/
-└── index.html
+Audio-To-Text-WebLLM/  
+└── audio-quest-ans-demo/  
+   └── index.html
 
 
 ---
@@ -16,7 +16,7 @@ Audio-To-Text-WebLLM/
 ## Features
 
 - **Audio capture** using Web MediaRecorder API.
-- **Audio transcription** with Whisper Tiny model running natively in the browser on WebGPU.
+- **Audio transcription** with the Whisper Tiny model running natively in the browser on WebGPU.
 - **Text generation / Q&A** using a small instruction-tuned language model running locally on WebGPU via Transformers.js.
 - Fully client-side inference without server calls (except loading model files from the web).
 
@@ -60,7 +60,7 @@ Navigate to: `http://localhost:8000/index.html`
 
 ## Tips for Extension
 
-- Integrate with cloud LLM APIs for high quality answers if you need production-grade performance.
+- Integrate with cloud LLM APIs for high-quality answers if you need production-grade performance.
 - Experiment with different public ONNX/text-generation models listed on Hugging Face.
 - Add UI features: streaming transcription, stop/start toggles, or context input for better Q&A.
 
