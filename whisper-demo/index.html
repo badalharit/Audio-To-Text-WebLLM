@@ -32,7 +32,7 @@
             try {
                 transcriber = await pipeline(
                     'automatic-speech-recognition',
-                    'onnx-community/whisper-tiny.en',
+                    'onnx-community/whisper-base',
                     { device: 'webgpu' }
                 );
                 status.textContent = 'Model loaded! Ready to record.';
