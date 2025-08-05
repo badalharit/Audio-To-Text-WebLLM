@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Voice Q&A: Whisper → LLM</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    button { margin-right: 1rem; padding: 0.5rem 1rem; }
+    #status { margin-top: 1rem; font-weight: bold; }
+    #output { margin-top: 1rem; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>Speak & Get AI Answer</h1>
+  <button id="startBtn" disabled>Start</button>
+  <button id="stopBtn" disabled>Stop</button>
+  <div id="status">Initializing models…</div>
+  <div id="transcript"></div>
+  <div id="output"></div>
+
+  <script type="module">
+    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.0';
+
+    let asr, generator;
+    let recorder, chunks = [];
+    const startBtn    = document.getElementById('startBtn');
+    const stopBtn     = document.getElementById('stopBtn');
+    const statusEl    = document.getElementById('status');
+    const transcriptEl= document.getElementById('transcript');
+    const outputEl    = document.getElementById('output');
+
+    async function init() {
+      statusEl.textContent = 'Loading ASR (Whisper)…';
+      asr = await pipeline('automatic-speech-recognition','onnx-community/whisper-tiny.en',{ device:'webgpu' });
+      
+      statusEl.textContent = 'Loading Question-Answering Model…';
+      generator = await pipeline('text-generation','onnx-community/gpt2-ONNX',{ device:'webgpu' });
+
+      statusEl.textContent = 'Ready—click Start.';
+      startBtn.disabled = false;
+    }
+
+    function startRecording() {
+      chunks = [];
+      statusEl.textContent = 'Recording…';
+      startBtn.disabled = true;
+      stopBtn.disabled  = false;
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          recorder = new MediaRecorder(stream);
+          recorder.ondataavailable = e => chunks.push(e.data);
+          recorder.onstop = onStop;
+          recorder.start();
+        })
+        .catch(err => {
+          console.error(err);
+          statusEl.textContent = 'Microphone error.';
+          startBtn.disabled = false;
+        });
+    }
+
+    // Fix here: pass an object with question and context to question-answering pipeline
+    async function onStop() {
+        stopBtn.disabled = true;
+        statusEl.textContent = 'Transcribing…';
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+
+        try {
+            const { text: question } = await asr(url);
+            transcriptEl.textContent = `You said: ${question}`;
+            statusEl.textContent = 'Generating answer…';
+
+            const prompt = `Q: ${question}\nA:`;
+            const results = await generator(prompt, { max_new_tokens: 64 });
+            const answer = results[0].generated_text.replace(prompt, '').trim();
+
+            outputEl.textContent = answer;
+            statusEl.textContent = 'Done.';
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = 'Error during inference.';
+        } finally {
+            URL.revokeObjectURL(url);
+            startBtn.disabled = false;
+        }
+        }
+
+
+    function stopRecording() {
+      if (recorder && recorder.state === 'recording') {
+        recorder.stop();
+        recorder.stream.getTracks().forEach(t=>t.stop());
+      }
+    }
+
+    startBtn.addEventListener('click',  startRecording);
+    stopBtn.addEventListener('click',   stopRecording);
+
+    init();
+  </script>
+</body>
+</html>
